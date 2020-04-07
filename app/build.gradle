@@ -5,7 +5,7 @@ android {
     buildToolsVersion "29.0.3"
 
     defaultConfig {
-        applicationId "com.ashomok.tesseractsample"
+        applicationId "com.example.tesseractsample"
         minSdkVersion 24
         targetSdkVersion 29
         versionCode 4
@@ -25,4 +25,5 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'com.rmtheis:tess-two:9.1.0'
     implementation 'androidx.legacy:legacy-support-v13:1.0.0'
+    implementation 'androidx.exifinterface:exifinterface:1.3.0-alpha01'
 }
