@@ -15,6 +15,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Capture image"/>
+        <Button
+            android:id="@+id/action_choosing_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Choose image"/>
 
         <Spinner
             android:id="@+id/lang_spinner"

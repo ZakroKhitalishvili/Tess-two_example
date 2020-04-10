@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="lang_array">
+    <string-array name="lang_value_array_">
         <item>eng</item>
         <item>kat</item>
         <item>rus</item>
         <item>equ</item>
     </string-array>
-
+    <string-array name="lang_text_array">
+        <item>English</item>
+        <item>Georgian</item>
+        <item>Russian</item>
+        <item>Equation</item>
+    </string-array>
 </resources>

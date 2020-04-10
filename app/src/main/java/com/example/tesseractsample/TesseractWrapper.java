@@ -10,7 +10,6 @@ import androidx.exifinterface.media.ExifInterface;
 import android.util.Log;
 
 import com.example.tesseractsample.tools.PathUtils;
-import com.googlecode.tesseract.android.ResultIterator;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.File;
@@ -30,14 +29,14 @@ public class TesseractWrapper {
     private Context context;
     private static final String TAG = "TesseractWrapper";
     private int progressPercent = 0;
-    private static final int OCR_PREPARE_PART = 40;
-    private static final int OCR_PART = 60;
+    private static final int OCR_PREPARE_PART = 10;
+    private static final int OCR_PART = 90;
 
     public TesseractWrapper(Context context, File image, String lang, String processingDir) {
         this.tessBaseAPI = new TessBaseAPI(new TessBaseAPI.ProgressNotifier() {
             @Override
             public void onProgressValues(TessBaseAPI.ProgressValues progressValues) {
-                setProgress(OCR_PREPARE_PART + (OCR_PART * progressValues.getPercent()));
+                setProgress((int)(OCR_PREPARE_PART + (OCR_PART * progressValues.getPercent() / 100.0f)));
             }
         });
 
@@ -78,6 +77,8 @@ public class TesseractWrapper {
     {
         public int meanConfidence;
         public String fullUTF8Text;
+        public String htmlText;
+        public long elapsedTime;
     }
 
     /**
@@ -87,9 +88,7 @@ public class TesseractWrapper {
      */
     private void copyTessDataFiles(String path) throws IOException {
         String fileList[] = context.getAssets().list(TESSERACT_FOLDER);
-        Log.d(TAG, path);
         for (String fileName : fileList) {
-            Log.d(TAG, fileName);
             // open file within the assets folder
             // if it is not already there copy it to the sdcard
             String pathToDataFile = PathUtils.combineFile(path, fileName).getPath();
@@ -127,7 +126,7 @@ public class TesseractWrapper {
     private Result extractText(Bitmap bitmap) {
 
         tessBaseAPI.init(processingDir, lang);
-
+        tessBaseAPI.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
 //       //EXTRA SETTINGS
 //        //For example if we only want to detect numbers
 //        tessBaseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "1234567890");
@@ -141,33 +140,21 @@ public class TesseractWrapper {
 
         StringBuilder extractedText = new StringBuilder();
         tessBaseAPI.setImage(bitmap);
-//        tessBaseAPI.setDebug(true);
-//        tessBaseAPI
-//        extractedText = tessBaseAPI.getUTF8Text();
-        int meanConfidence = tessBaseAPI.meanConfidence();// triggers processing
 
-        ResultIterator iterator = tessBaseAPI.getResultIterator();
+        long start = System.currentTimeMillis();
+        String html = tessBaseAPI.getHOCRText(0);
+        long end = System.currentTimeMillis();
+        long elapsedTime = (end-start);
         extractedText.append(tessBaseAPI.getUTF8Text());
-        int count = 1;
-//        iterator.begin();
-//        extractedText.append("Mean Confidence: " + meanConfidence + "\n");
-//        do {
-//            extractedText
-//                    .append(count + ")");
-//
-//            String innerStr = iterator.getUTF8Text(TessBaseAPI.PageIteratorLevel.RIL_TEXTLINE);
-//            double confidence = iterator.confidence(TessBaseAPI.PageIteratorLevel.RIL_TEXTLINE);
-//            extractedText
-//                    .append(String.format(Locale.getDefault(), "{%s}  (%f) \n", innerStr, confidence));
-//            count++;
-//        }
-//        while (iterator.next(TessBaseAPI.PageIteratorLevel.RIL_TEXTLINE));
-//        iterator.delete();
-
+        int meanConfidence = tessBaseAPI.meanConfidence();// triggers processing
         tessBaseAPI.end();
+
         Result result = new Result();
         result.meanConfidence = meanConfidence;
         result.fullUTF8Text = extractedText.toString();
+        result.htmlText = html ;
+        result.elapsedTime = elapsedTime;
+
         return result;
     }
 

@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
+import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
@@ -29,11 +30,14 @@ import com.example.tesseractsample.tools.RequestPermissionsToolImpl;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.File;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 public class MainActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int PHOTO_REQUEST_CODE = 1;
+    private static final int PHOTO_SELECT_CODE = 2;
     private final String APP_FOLDER_NAME = "TesseractSample";
     private final String TESS_DATA = "tessdata";
     private final String IMG_FOLDER = "imgs";
@@ -48,6 +52,7 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
     private RequestPermissionsTool requestTool;
     private File basePath;
     private File imgFile;
+    private String langArray[];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,15 +68,16 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
         PathUtils.prepareDirectory(imgDir.getPath());
 
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.lang_array, android.R.layout.simple_spinner_item);
+                R.array.lang_text_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
         langSpinner.setAdapter(adapter);
+
+        langArray = getResources().getStringArray(R.array.lang_value_array_);
 
         langSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                lang = parent.getItemAtPosition(position).toString();
+                lang = langArray[position];
             }
 
             @Override
@@ -82,11 +88,20 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
 
 
         Button captureImg = (Button) findViewById(R.id.action_btn);
+        Button chooseImg = (Button) findViewById(R.id.action_choosing_btn);
         if (captureImg != null) {
             captureImg.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     startCameraActivity();
+                }
+            });
+        }
+        if (chooseImg != null) {
+            chooseImg.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    startImageSelectActivity();
                 }
             });
         }
@@ -113,31 +128,72 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
         }
     }
 
+    private void startImageSelectActivity() {
+        try {
+            final Intent choosePictureIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+            if (choosePictureIntent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(choosePictureIntent, PHOTO_SELECT_CODE);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+    }
+
+
     @Override
     public void onActivityResult(int requestCode, int resultCode,
                                  Intent data) {
         //making photo
-        if (requestCode == PHOTO_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            Thread thread = new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        doOCR();
-                    } catch (Exception e) {
-                        e.printStackTrace();
+        if (requestCode == PHOTO_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                Thread thread = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            doOCR(imgFile, lang);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-            };
+                };
 
-            thread.start();
+                thread.start();
 
-        } else {
-            Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        if (requestCode == PHOTO_SELECT_CODE && data.getData() != null) {
+            if (resultCode == Activity.RESULT_OK) {
+                Uri selectedImage = data.getData();
+                final File externalImage = new File(selectedImage.getPath().replace("raw/", ""));
+
+                Thread thread = new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+
+                            doOCR(externalImage, lang);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+
+                thread.start();
+
+
+            } else {
+                Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
-    private void doOCR() throws Exception {
-        TesseractWrapper tesseractWrapper = new TesseractWrapper(this, imgFile, lang, basePath.getPath());
+    private void doOCR(File image, String lang) throws Exception {
+        setText(textView,"Processing, please wait ...");
+        TesseractWrapper tesseractWrapper = new TesseractWrapper(this, image, lang, basePath.getPath());
         tesseractWrapper.setOnProgress(new TesseractWrapper.OnProgress() {
             @Override
             public void onProgress(int percent) {
@@ -145,8 +201,9 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
             }
         });
         TesseractWrapper.Result result = tesseractWrapper.process();
-        setText(textView, String.format("Mean Confidence : %d/100 \n\n %s",result.meanConfidence,result.fullUTF8Text));
-
+        setText(textView,
+                String.format(Locale.getDefault(), "Ellapsed Time: %.2f seconds \n\n Mean Confidence : %d/100 \n\n %s",
+                        result.elapsedTime / 1000.0f, result.meanConfidence, result.htmlText));
     }
 
     private void requestPermissions() {
@@ -178,7 +235,7 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                text.setText(value);
+                text.setText(Html.fromHtml(value, Html.FROM_HTML_MODE_COMPACT));
             }
         });
     }
