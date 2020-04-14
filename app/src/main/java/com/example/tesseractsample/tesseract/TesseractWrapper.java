@@ -1,4 +1,4 @@
-package com.example.tesseractsample;
+package com.example.tesseractsample.tesseract;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -10,6 +10,9 @@ import androidx.exifinterface.media.ExifInterface;
 import android.util.Log;
 
 import com.example.tesseractsample.tools.PathUtils;
+import com.googlecode.leptonica.android.Box;
+import com.googlecode.leptonica.android.Pix;
+import com.googlecode.leptonica.android.Pixa;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.File;
@@ -17,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 
 public class TesseractWrapper {
 
@@ -79,6 +83,8 @@ public class TesseractWrapper {
         public String fullUTF8Text;
         public String htmlText;
         public long elapsedTime;
+        public Pixa textComponents;
+        public Bitmap bitmap;
     }
 
     /**
@@ -116,7 +122,7 @@ public class TesseractWrapper {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 2; // 1 - means max size. 4 - means maxsize/4 size. Don't use value <4, because you need more memory in the heap to store your data.
 
-        Bitmap bitmap = getOrientedBitmap(image, options);
+        Bitmap bitmap = PathUtils.getOrientedBitmap(image, options);
 
         Result result = extractText(bitmap);
         return result;
@@ -147,59 +153,17 @@ public class TesseractWrapper {
         long elapsedTime = (end-start);
         extractedText.append(tessBaseAPI.getUTF8Text());
         int meanConfidence = tessBaseAPI.meanConfidence();// triggers processing
-        tessBaseAPI.end();
+
 
         Result result = new Result();
         result.meanConfidence = meanConfidence;
         result.fullUTF8Text = extractedText.toString();
         result.htmlText = html ;
         result.elapsedTime = elapsedTime;
-
+        result.textComponents = tessBaseAPI.getRegions();
+        result.bitmap = bitmap;
+        tessBaseAPI.end();
         return result;
-    }
-
-    private Bitmap getOrientedBitmap(File image, BitmapFactory.Options options) throws Exception {
-        Bitmap bitmap = BitmapFactory.decodeFile(image.getPath(), options);
-
-        if (bitmap == null) {
-            throw new Exception("Could not get a bitmap from image file");
-        }
-
-        //exploring image orientation
-        ExifInterface exif = new ExifInterface(image.getPath());
-        int exifOrientation = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL);
-
-        int rotate = 0;
-
-        switch (exifOrientation) {
-            case ExifInterface.ORIENTATION_ROTATE_90:
-                rotate = 90;
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_180:
-                rotate = 180;
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_270:
-                rotate = 270;
-                break;
-        }
-
-        if (rotate != 0) {
-
-            // Getting width & height of the given image.
-            int w = bitmap.getWidth();
-            int h = bitmap.getHeight();
-
-            // Setting pre rotate
-            Matrix mtx = new Matrix();
-            mtx.postRotate(rotate);
-
-            // Rotating Bitmap
-            bitmap = Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, false);
-        }
-
-        return bitmap;
     }
 
     private void setProgress(int percent) {

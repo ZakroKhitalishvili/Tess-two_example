@@ -10,13 +10,15 @@
         android:configChanges="orientation"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-
         android:screenOrientation="landscape"
         android:supportsRtl="true"
-
         android:theme="@style/AppTheme">
         <activity
-            android:name="com.example.tesseractsample.MainActivity"
+            android:name=".ResultActivity"
+            android:label="@string/title_activity_result"
+            android:theme="@style/AppTheme.NoActionBar"></activity>
+        <activity
+            android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="fullSensor">
             <intent-filter>

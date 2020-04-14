@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
@@ -24,16 +25,16 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.tesseractsample.tesseract.TesseractWrapper;
 import com.example.tesseractsample.tools.PathUtils;
 import com.example.tesseractsample.tools.RequestPermissionsTool;
 import com.example.tesseractsample.tools.RequestPermissionsToolImpl;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.File;
-import java.util.Locale;
-import java.util.ResourceBundle;
+import java.io.Serializable;
 
-public class MainActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
+public class MainActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int PHOTO_REQUEST_CODE = 1;
@@ -109,6 +110,7 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
         textView.setMaxLines(100);
         textView.setMovementMethod(new ScrollingMovementMethod());
         requestPermissions();
+
     }
 
 
@@ -144,6 +146,7 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
     @Override
     public void onActivityResult(int requestCode, int resultCode,
                                  Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         //making photo
         if (requestCode == PHOTO_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {
@@ -181,9 +184,7 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
                         }
                     }
                 };
-
                 thread.start();
-
 
             } else {
                 Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
@@ -200,10 +201,15 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
                 setProgressBar(percent);
             }
         });
-        TesseractWrapper.Result result = tesseractWrapper.process();
-        setText(textView,
-                String.format(Locale.getDefault(), "Ellapsed Time: %.2f seconds \n\n Mean Confidence : %d/100 \n\n %s",
-                        result.elapsedTime / 1000.0f, result.meanConfidence, result.htmlText));
+        final TesseractWrapper.Result result = tesseractWrapper.process();
+        final File resultFile = image;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                showResultActivity(result,resultFile);
+            }
+        });
+
     }
 
     private void requestPermissions() {
@@ -253,6 +259,18 @@ public class MainActivity extends Activity implements ActivityCompat.OnRequestPe
         return FileProvider.getUriForFile(this,
                 this.getApplicationContext().getPackageName() + ".provider",
                 new File(fileName));
+    }
+
+    private void showResultActivity(TesseractWrapper.Result result, File image)
+    {
+
+        Intent intent = new Intent(this, ResultActivity.class);
+        intent.putExtra("confidence",  result.meanConfidence );
+        intent.putExtra("elapsedTime",  result.elapsedTime );
+        intent.putExtra("text",  result.fullUTF8Text );
+        intent.putExtra("imageBoxRects",  result.textComponents.getBoxRects());
+        intent.putExtra("image", image);
+        startActivity(intent);
     }
 }
 
