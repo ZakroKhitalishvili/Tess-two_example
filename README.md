@@ -1,5 +1,9 @@
 # Tess-two_example
-This is a forked version for Tess-two example. Dependencies updated, replaced deprecated code.
+This is a forked version for Tess-two example. 
+# Changes
+Dependencies updated, replaced deprecated code.
+Added support for Tesseract OCR to process Georgian texts.
+Added detailed result showing confidence, elapsed time and found text components on an image.
 
 tess-two usage example. This Android project uses Tesseract for performing OCR. 
 [apk in Google Play Market](https://play.google.com/store/apps/details?id=com.ashomok.tesseractsample)
@@ -15,3 +19,5 @@ dependencies {
     compile 'com.rmtheis:tess-two:9.1.0'
 }
 ```
+
+ანდროიდის სანიმუშო პროექტი სურათებზე ქართული ტექსტების ამოცნობისთვის(OCR), რმელიც იყენებს Tesseract-ზე დაფუძნებული Tess-two ბიბლიოთეკას.
